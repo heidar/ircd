@@ -23,6 +23,8 @@ class IRCd < EventMachine::Connection
       user($1, $2, $3, $4)
     when /^QUIT :(.*)$/i
       quit($1)
+    when /^PRIVMSG +([^ ]+) +:(.*)$/i
+      privmsg($1, $2)
     end
   end
 
@@ -44,6 +46,16 @@ class IRCd < EventMachine::Connection
     self.close_connection
     $logger.info("QUIT #{nick}")
   end
+
+  def privmsg(target, msg)
+    target = @@clients[target]
+    if target.nil?
+      self.send_data("No such nick/channel\n")
+      return
+    else
+      target[:connection].send_data("#{msg}\n")
+    end
+  end
 end
 
 log = Logger.new(STDOUT)
@@ -53,4 +65,6 @@ EventMachine.run {
   host, port = "0.0.0.0", 6667
   EventMachine.start_server host, port, IRCd
   $logger.info "Listening on #{host}:#{port}..."
+  Signal.trap("INT")  { EventMachine.stop }
+  Signal.trap("TERM") { EventMachine.stop }
 }
