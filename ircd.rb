@@ -12,7 +12,7 @@ class IRCd < EventMachine::Connection
 
   def post_init
     port, ip = Socket.unpack_sockaddr_in(get_sockname)
-    $logger.info "Connection from #{ip}:#{port}"
+    $logger.info("Connection from #{ip}:#{port}")
   end
 
   def receive_data(data)
@@ -21,19 +21,28 @@ class IRCd < EventMachine::Connection
       nick($1.strip)
     when /^USER +([^ ]+) +([0-9]+) +([^ ]+) +:*(.*)$/i
       user($1, $2, $3, $4)
+    when /^QUIT :(.*)$/i
+      quit($1)
     end
   end
 
   def nick(nick)
     @@clients[nick] = { connection: self }
-    $logger.info "NICK #{nick}"
+    $logger.info("NICK #{nick}")
   end
 
   def user(user, mode, unused, realname)
     nick = @@clients.key({ connection: self })
     @@clients[nick][:user] = user
     @@clients[nick][:realname] = realname
-    $logger.info "USER #{nick}!#{user}@host #{realname}"
+    $logger.info("USER #{nick}!#{user}@TODOHOST #{realname}")
+  end
+
+  def quit(msg)
+    nick = @@clients.invert[connection: self]
+    @@clients.delete(nick)
+    self.close_connection
+    $logger.info("QUIT #{nick}")
   end
 end
 
