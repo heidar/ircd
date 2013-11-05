@@ -69,7 +69,7 @@ class IRCd < EventMachine::Connection
       self.send_data("#{@@name} 401 #{nick} #{target_nick} :No such nick/channel\n")
       return
     else
-      target[:connection].send_data(":#{nick}!#{user}@#{ip} PRIVMSG #{msg}\n")
+      target[:connection].send_data(":#{nick}!#{user}@#{ip} PRIVMSG #{target_nick} :#{msg}\n")
     end
   end
 end
