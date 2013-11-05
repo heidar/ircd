@@ -9,11 +9,9 @@ require 'socket'
 class IRCd < EventMachine::Connection
 
   @@clients = {}
-
-  def post_init
-    port, ip = Socket.unpack_sockaddr_in(get_sockname)
-    $logger.info("Connection from #{ip}:#{port}")
-  end
+  @@name = 'cloud.localhost'
+  @@version = 'pre-alpha'
+  @@date = Time.now
 
   def receive_data(data)
     case data
@@ -34,26 +32,44 @@ class IRCd < EventMachine::Connection
   end
 
   def user(user, mode, unused, realname)
-    nick = @@clients.key({ connection: self })
+    port, ip = Socket.unpack_sockaddr_in(get_sockname)
+    $logger.info("Connection from #{ip}:#{port}")
+    nick = ''
+    @@clients.each { |k,c| nick = k if c[:connection] == self }
     @@clients[nick][:user] = user
     @@clients[nick][:realname] = realname
-    $logger.info("USER #{nick}!#{user}@TODOHOST #{realname}")
+    @@clients[nick][:ip] = ip
+    @@clients[nick][:post] = port
+    @@clients[nick][:host] = nil
+    self.send_data(":#{@@name} 001 #{nick} :Welcome to the Internet Relay Network #{nick}!#{user}@#{ip}\n")
+    self.send_data(":#{@@name} 002 #{nick} :Your host is #{@@name}, running version #{@@version}\n")
+    self.send_data(":#{@@name} 003 #{nick} :This server was created #{@@date}\n")
+    self.send_data(":#{@@name} 004 #{nick} :#{@@name} #{@@version} <available user modes> <available channel modes>\n")
+    $logger.info("USER #{nick}!#{user}@#{ip} #{realname}")
   end
 
   def quit(msg)
     nick = @@clients.invert[connection: self]
+    nick = ''
+    @@clients.each { |k,c| nick = k if c[:connection] == self }
     @@clients.delete(nick)
     self.close_connection
     $logger.info("QUIT #{nick}")
   end
 
   def privmsg(target, msg)
+    target_nick = target.strip
     target = @@clients[target]
+    nick = ''
+    @@clients.each { |k,c| nick = k if c[:connection] == self }
+    client = @@clients[nick]
+    user = client[:user]
+    ip = client[:ip]
     if target.nil?
-      self.send_data("No such nick/channel\n")
+      self.send_data("#{@@name} 401 #{nick} #{target_nick} :No such nick/channel\n")
       return
     else
-      target[:connection].send_data("#{msg}\n")
+      target[:connection].send_data(":#{nick}!#{user}@#{ip} PRIVMSG #{msg}\n")
     end
   end
 end
