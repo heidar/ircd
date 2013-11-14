@@ -11,11 +11,19 @@ class IRCd < EventMachine::Connection
 
   config = JSON.parse(IO.read('config.json'))
   @@clients = {}
+  @@servers = {}
   @@name = config['name']
   @@network = config['network']
   @@full = "#{@@name}.#{@@network}"
   @@version = 'pre-alpha'
   @@date = Time.now
+
+  servers = config['servers']
+
+  servers.each do |s|
+    # TODO: connect to server
+    puts "Linking with #{s}..."
+  end
 
   def receive_data(data)
     case data
@@ -27,6 +35,8 @@ class IRCd < EventMachine::Connection
       quit($1)
     when /^PRIVMSG +([^ ]+) +:(.*)$/i
       privmsg($1, $2)
+    when /^SERVER +([^ ]+) +([0-9]+) +([0-9]+) +:*(.*)$/i
+      server($1, $2, $3, $4)
     end
   end
 
@@ -76,21 +86,19 @@ class IRCd < EventMachine::Connection
       target[:connection].send_data(":#{nick}!#{user}@#{ip} PRIVMSG #{target_nick} :#{msg}\n")
     end
   end
+
+  def server(name, hopcount, token, info)
+    #TODO
+  end
 end
 
 log = Logger.new(STDOUT)
 $logger = EM::Logger.new(log)
 
 EventMachine.run {
-  host0, port0 = "0.0.0.0", 6667
-  host1, port1 = "0.0.0.0", 6668
-  host2, port2 = "0.0.0.0", 6669
-  EventMachine.start_server host0, port0, IRCd
-  $logger.info "Listening on #{host0}:#{port0}..."
-  EventMachine.start_server host1, port1, IRCd
-  $logger.info "Listening on #{host1}:#{port1}..."
-  EventMachine.start_server host2, port2, IRCd
-  $logger.info "Listening on #{host2}:#{port2}..."
+  host, port = "0.0.0.0", 6667
+  EventMachine.start_server host, port, IRCd
+  $logger.info "Listening on #{host}:#{port}..."
   Signal.trap("INT")  { EventMachine.stop }
   Signal.trap("TERM") { EventMachine.stop }
 }
