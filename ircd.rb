@@ -2,14 +2,18 @@
 
 require 'em-logger'
 require 'eventmachine'
+require 'json'
 require 'logger'
 require 'rubygems'
 require 'socket'
 
 class IRCd < EventMachine::Connection
 
+  config = JSON.parse(IO.read('config.json'))
   @@clients = {}
-  @@name = 'cloud.localhost'
+  @@name = config['name']
+  @@network = config['network']
+  @@full = "#{@@name}.#{@@network}"
   @@version = 'pre-alpha'
   @@date = Time.now
 
@@ -41,10 +45,10 @@ class IRCd < EventMachine::Connection
     @@clients[nick][:ip] = ip
     @@clients[nick][:post] = port
     @@clients[nick][:host] = nil
-    self.send_data(":#{@@name} 001 #{nick} :Welcome to the Internet Relay Network #{nick}!#{user}@#{ip}\n")
-    self.send_data(":#{@@name} 002 #{nick} :Your host is #{@@name}, running version #{@@version}\n")
-    self.send_data(":#{@@name} 003 #{nick} :This server was created #{@@date}\n")
-    self.send_data(":#{@@name} 004 #{nick} :#{@@name} #{@@version} <available user modes> <available channel modes>\n")
+    self.send_data(":#{@@full} 001 #{nick} :Welcome to the Internet Relay Network #{nick}!#{user}@#{ip}\n")
+    self.send_data(":#{@@full} 002 #{nick} :Your host is #{@@full}, running version #{@@version}\n")
+    self.send_data(":#{@@full} 003 #{nick} :This server was created #{@@date}\n")
+    self.send_data(":#{@@full} 004 #{nick} :#{@@full} #{@@version} <available user modes> <available channel modes>\n")
     $logger.info("USER #{nick}!#{user}@#{ip} #{realname}")
   end
 
@@ -66,7 +70,7 @@ class IRCd < EventMachine::Connection
     user = client[:user]
     ip = client[:ip]
     if target.nil?
-      self.send_data("#{@@name} 401 #{nick} #{target_nick} :No such nick/channel\n")
+      self.send_data("#{@@full} 401 #{nick} #{target_nick} :No such nick/channel\n")
       return
     else
       target[:connection].send_data(":#{nick}!#{user}@#{ip} PRIVMSG #{target_nick} :#{msg}\n")
@@ -78,9 +82,15 @@ log = Logger.new(STDOUT)
 $logger = EM::Logger.new(log)
 
 EventMachine.run {
-  host, port = "0.0.0.0", 6667
-  EventMachine.start_server host, port, IRCd
-  $logger.info "Listening on #{host}:#{port}..."
+  host0, port0 = "0.0.0.0", 6667
+  host1, port1 = "0.0.0.0", 6668
+  host2, port2 = "0.0.0.0", 6669
+  EventMachine.start_server host0, port0, IRCd
+  $logger.info "Listening on #{host0}:#{port0}..."
+  EventMachine.start_server host1, port1, IRCd
+  $logger.info "Listening on #{host1}:#{port1}..."
+  EventMachine.start_server host2, port2, IRCd
+  $logger.info "Listening on #{host2}:#{port2}..."
   Signal.trap("INT")  { EventMachine.stop }
   Signal.trap("TERM") { EventMachine.stop }
 }

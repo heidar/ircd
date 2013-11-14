@@ -1,0 +1,5 @@
+{
+  "name": "cloud",
+  "network": "localhost",
+  "links": ["0.0.0.0:6668", "0.0.0.0:6669"]
+}
