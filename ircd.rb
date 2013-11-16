@@ -88,7 +88,8 @@ class IRCd < EventMachine::Connection
   end
 
   def server(name, hopcount, token, info)
-    #TODO
+    @@servers[token] = { connection: self, name: name, info: info }
+    $logger.info("SERVER #{name} #{hopcount} #{token} :#{info}")
   end
 end
 
