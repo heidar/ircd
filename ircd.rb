@@ -11,16 +11,16 @@ class IRCd < EventMachine::Connection
 
   config = JSON.parse(IO.read('config.json'))
   @@clients = {}
-  @@servers = {}
+  @@links = {}
   @@name = config['name']
   @@network = config['network']
   @@full = "#{@@name}.#{@@network}"
   @@version = 'pre-alpha'
   @@date = Time.now
 
-  servers = config['servers']
+  links = config['links']
 
-  servers.each do |s|
+  links.each do |s|
     # TODO: connect to server
     puts "Linking with #{s}..."
   end
