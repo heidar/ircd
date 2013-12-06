@@ -21,4 +21,4 @@ graph = RGL::DirectedAdjacencyGraph.new
 0.step(network.size-1, 2) { |i| graph.add_edge(network[i], network[i+1]) }
 graph.write_to_graphic_file('png')
 puts "Saving graph as graph.dot and graph.png"
-puts "#{servers.size} servers with total #{network.size} links"
+puts "#{servers.size} servers with total #{network.size/2} links"
